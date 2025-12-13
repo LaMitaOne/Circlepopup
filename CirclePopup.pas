@@ -5,6 +5,9 @@ interface
 uses
   Forms, Graphics, Controls, Math, Classes, Messages, Windows;
 
+const
+  GAPANGLE = 6;
+
 type
   // Event type for the segment click event
   TCirclePopupClickEvent = procedure(Sender: TObject; SegmentIndex: Integer) of object;
@@ -179,24 +182,32 @@ procedure TCirclePopupForm.PaintPopupForm(Sender: TObject);
 var
   AngleStart, AngleEnd: Double;
   i: Integer;
-  SegmentAngle: Double;
+  SegmentAngle, TotalCycle: Double;
 begin
-  // Gap in degrees (1 pixel gap)
-  SegmentAngle := FAngleStep - 1 / FOuterRadius * 360;
+  // Calculate proper segment and gap angles for symmetry
+
+  // Each segment gets equal angle minus half the gap on each side
+  SegmentAngle := (360 -GAPANGLE * FSegmentCount) / FSegmentCount;
+  TotalCycle := SegmentAngle +GAPANGLE;
 
   for i := 0 to FSegmentCount - 1 do
   begin
-    AngleStart := i * FAngleStep;
+    // Calculate start and end angles with proper gaps
+    AngleStart :=GAPANGLE/2 + i * TotalCycle;
     AngleEnd := AngleStart + SegmentAngle;
 
     // Draw segment
     if i = FMouseSegment then
-      FPopupForm.Canvas.Brush.Color := FHoverColor // Mouseover color
+      FPopupForm.Canvas.Brush.Color := FHoverColor
     else
       FPopupForm.Canvas.Brush.Color := FSegmentColor;
 
     FPopupForm.Canvas.Pen.Color := FBorderColor;
     FPopupForm.Canvas.Pen.Width := 1;
+
+    FPopupForm.Canvas.Pen.Mode := pmCopy;
+
+    // Draw the segment
     FPopupForm.Canvas.Pie(FCenterX - FOuterRadius, FCenterY - FOuterRadius,
                           FCenterX + FOuterRadius, FCenterY + FOuterRadius,
                           Round(FCenterX + FOuterRadius * Cos(DegToRad(AngleStart))),
@@ -214,6 +225,7 @@ begin
   FPopupForm.Canvas.Ellipse(FCenterX - FInnerRadius, FCenterY - FInnerRadius,
                             FCenterX + FInnerRadius, FCenterY + FInnerRadius);
 end;
+
 
 // Apply alpha blending for fade-in and fade-out effects
 procedure TCirclePopupForm.ApplyAlphaBlend;
@@ -292,14 +304,22 @@ end;
 function TCirclePopupForm.GetSegmentFromMouse(X, Y: Integer): Integer;
 var
   Angle: Double;
+  SegmentAngle, TotalCycle: Double;
 begin
+  // Calculate the same angles we use for drawing
+  SegmentAngle := (360 -GAPANGLE * FSegmentCount) / FSegmentCount;
+  TotalCycle := SegmentAngle +GAPANGLE;
+
   Angle := GetAngle(X, Y);
-  // Shift angle by 90° if needed
-  Angle := Angle + 20; // or -90, depending
-  if Angle >= 360 then
-    Angle := Angle - 360;
-  
-  Result := Floor(Angle / FAngleStep);
+
+  // Adjust angle to match our drawing coordinate system
+  // Our segments start atFGapAngle/2, so we need to offset
+  Angle := Angle -GAPANGLE/2;
+  if Angle < 0 then
+    Angle := Angle + 360;
+
+  // Calculate which segment this angle falls into
+  Result := Floor(Angle / TotalCycle);
   if Result >= FSegmentCount then
     Result := FSegmentCount - 1;
   if Result < 0 then
