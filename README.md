@@ -9,5 +9,3 @@ Latest changes:
  - fixed GetSegmentfrom Mouse -> more precise now    
  - starting Angle corrected to get all symetric   
        
-part of MEDiA Revolution X Mediaplayer freeware:   
-https://lamita.jimdosite.com/    
